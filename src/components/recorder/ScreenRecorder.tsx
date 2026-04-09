@@ -1,15 +1,18 @@
 import { useState, useCallback } from "react";
-import { Monitor, AlertTriangle } from "lucide-react";
+import { Monitor, AlertTriangle, Camera } from "lucide-react";
 import { useScreenRecorder } from "@/hooks/useScreenRecorder";
+import { useScreenshot } from "@/hooks/useScreenshot";
 import { TimerDisplay } from "./TimerDisplay";
 import { RecorderControls } from "./RecorderControls";
 import { SettingsPanel } from "./SettingsPanel";
 import { VideoPreview } from "./VideoPreview";
+import { ScreenshotPreview } from "./ScreenshotPreview";
+import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 
 export function ScreenRecorder() {
   const [includeMic, setIncludeMic] = useState(false);
-  const [maxDuration, setMaxDuration] = useState(180); // 3 min default
+  const [maxDuration, setMaxDuration] = useState(180);
   const [isConverting, setIsConverting] = useState(false);
   const [mp4Url, setMp4Url] = useState<string | null>(null);
   const { toast } = useToast();
@@ -33,10 +36,14 @@ export function ScreenRecorder() {
     includeMic,
   });
 
-  // Show warning toast
-  if (warningActive) {
-    // This is fine in render since toast deduplicates
-  }
+  const {
+    takeScreenshot,
+    screenshotUrl,
+    screenshotBlob,
+    isTaking,
+    error: screenshotError,
+    discardScreenshot,
+  } = useScreenshot();
 
   const handleDiscard = useCallback(() => {
     if (mp4Url) URL.revokeObjectURL(mp4Url);
@@ -50,7 +57,6 @@ export function ScreenRecorder() {
     setIsConverting(true);
 
     try {
-      // Dynamic import of ffmpeg
       const { FFmpeg } = await import("@ffmpeg/ffmpeg");
       const { fetchFile, toBlobURL } = await import("@ffmpeg/util");
 
@@ -87,6 +93,8 @@ export function ScreenRecorder() {
   }, [recordedBlob, toast]);
 
   const isRecording = state === "recording" || state === "paused";
+  const showScreenshot = screenshotUrl && screenshotBlob && state === "idle";
+  const displayError = error || screenshotError;
 
   return (
     <div className="w-full max-w-2xl mx-auto space-y-8">
@@ -121,14 +129,14 @@ export function ScreenRecorder() {
       )}
 
       {/* Error */}
-      {error && (
+      {displayError && (
         <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-          {error}
+          {displayError}
         </div>
       )}
 
       {/* Controls */}
-      <div className="flex justify-center animate-fade-up-delay-2">
+      <div className="flex justify-center items-center gap-3 animate-fade-up-delay-2">
         <RecorderControls
           state={state}
           onStart={startRecording}
@@ -137,9 +145,23 @@ export function ScreenRecorder() {
           onStop={stopRecording}
           onDiscard={handleDiscard}
         />
+
+        {/* Screenshot button — only show when idle and no screenshot preview */}
+        {state === "idle" && !showScreenshot && (
+          <Button
+            size="lg"
+            variant="secondary"
+            onClick={takeScreenshot}
+            disabled={isTaking}
+            className="gap-3 px-6 py-6 text-base font-heading font-semibold transition-all hover:scale-[1.02] active:scale-[0.98]"
+          >
+            <Camera className="h-5 w-5" />
+            {isTaking ? "Capturing…" : "Screenshot"}
+          </Button>
+        )}
       </div>
 
-      {/* Preview */}
+      {/* Video Preview */}
       {state === "preview" && previewUrl && recordedBlob && (
         <VideoPreview
           previewUrl={previewUrl}
@@ -150,8 +172,17 @@ export function ScreenRecorder() {
         />
       )}
 
+      {/* Screenshot Preview */}
+      {showScreenshot && (
+        <ScreenshotPreview
+          screenshotUrl={screenshotUrl}
+          screenshotBlob={screenshotBlob}
+          onDiscard={discardScreenshot}
+        />
+      )}
+
       {/* Settings — only when idle */}
-      {state === "idle" && (
+      {state === "idle" && !showScreenshot && (
         <div className="animate-fade-up-delay-3">
           <SettingsPanel
             includeMic={includeMic}

@@ -4,7 +4,7 @@ export async function uploadAndShareRecording(
   blob: Blob,
   mimeType: string = "video/webm"
 ): Promise<{ shareUrl: string; shareId: string }> {
-  const ext = mimeType.includes("mp4") ? "mp4" : "webm";
+  const ext = mimeType.includes("mp4") ? "mp4" : mimeType.includes("png") ? "png" : "webm";
   const fileName = `${crypto.randomUUID()}.${ext}`;
   const filePath = `shared/${fileName}`;
 

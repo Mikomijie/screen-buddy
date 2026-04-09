@@ -1,11 +1,12 @@
-import { Mic, MicOff, Timer } from "lucide-react";
+import { Mic, MicOff, Timer, Video, VideoOff } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Slider } from "@/components/ui/slider";
 
 interface SettingsPanelProps {
   includeMic: boolean;
   onMicChange: (val: boolean) => void;
+  includeWebcam: boolean;
+  onWebcamChange: (val: boolean) => void;
   maxDuration: number;
   onMaxDurationChange: (val: number) => void;
   disabled?: boolean;
@@ -23,6 +24,8 @@ const DURATION_OPTIONS = [
 export function SettingsPanel({
   includeMic,
   onMicChange,
+  includeWebcam,
+  onWebcamChange,
   maxDuration,
   onMaxDurationChange,
   disabled = false,
@@ -44,7 +47,22 @@ export function SettingsPanel({
           <Label htmlFor="mic-toggle" className="text-sm cursor-pointer">
             Microphone audio
           </Label>
+      </div>
+
+      {/* Webcam toggle */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          {includeWebcam ? (
+            <Video className="h-4 w-4 text-primary" />
+          ) : (
+            <VideoOff className="h-4 w-4 text-muted-foreground" />
+          )}
+          <Label htmlFor="webcam-toggle" className="text-sm cursor-pointer">
+            Webcam overlay
+          </Label>
         </div>
+        <Switch id="webcam-toggle" checked={includeWebcam} onCheckedChange={onWebcamChange} disabled={disabled} />
+      </div>
         <Switch id="mic-toggle" checked={includeMic} onCheckedChange={onMicChange} disabled={disabled} />
       </div>
 

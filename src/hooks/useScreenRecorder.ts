@@ -90,10 +90,12 @@ export function useScreenRecorder(options: UseScreenRecorderOptions = {}): UseSc
     }
     if (screenVideoRef.current) {
       screenVideoRef.current.srcObject = null;
+      screenVideoRef.current.remove();
       screenVideoRef.current = null;
     }
     if (webcamVideoRef.current) {
       webcamVideoRef.current.srcObject = null;
+      webcamVideoRef.current.remove();
       webcamVideoRef.current = null;
     }
     canvasRef.current = null;
@@ -107,12 +109,19 @@ export function useScreenRecorder(options: UseScreenRecorderOptions = {}): UseSc
     screenVideo.srcObject = displayStream;
     screenVideo.muted = true;
     screenVideo.playsInline = true;
+    screenVideo.setAttribute("autoplay", "");
+    // Append to DOM (hidden) so browser doesn't throttle frame decoding
+    screenVideo.style.cssText = "position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;opacity:0;pointer-events:none;";
+    document.body.appendChild(screenVideo);
     screenVideo.play().catch(() => {});
 
     const camVideo = document.createElement("video");
     camVideo.srcObject = camStream;
     camVideo.muted = true;
     camVideo.playsInline = true;
+    camVideo.setAttribute("autoplay", "");
+    camVideo.style.cssText = "position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;opacity:0;pointer-events:none;";
+    document.body.appendChild(camVideo);
     camVideo.play().catch(() => {});
 
     screenVideoRef.current = screenVideo;

@@ -97,7 +97,10 @@ export function ScreenRecorder() {
 
   const isRecording = state === "recording" || state === "paused";
   const showScreenshot = screenshotUrl && screenshotBlob && state === "idle";
-  const displayError = error || screenshotError;
+  const displayError = error || screenshotError || webcam.error;
+
+  // Show webcam bubble during recording
+  const showWebcamBubble = webcam.isEnabled && webcam.stream && isRecording;
 
   return (
     <div className="w-full max-w-2xl mx-auto space-y-8">
@@ -108,6 +111,13 @@ export function ScreenRecorder() {
           Browser-native recording
         </div>
       </div>
+
+      {/* Webcam PiP bubble */}
+      {showWebcamBubble && (
+        <div className="relative w-full h-0">
+          <WebcamBubble videoRef={webcam.videoRef} stream={webcam.stream} />
+        </div>
+      )}
 
       {/* Timer */}
       {(isRecording || state === "preview") && (
@@ -190,6 +200,8 @@ export function ScreenRecorder() {
           <SettingsPanel
             includeMic={includeMic}
             onMicChange={setIncludeMic}
+            includeWebcam={webcam.isEnabled}
+            onWebcamChange={webcam.setEnabled}
             maxDuration={maxDuration}
             onMaxDurationChange={setMaxDuration}
             disabled={isRecording}

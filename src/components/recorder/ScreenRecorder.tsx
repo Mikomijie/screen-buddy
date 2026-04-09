@@ -66,8 +66,7 @@ export function ScreenRecorder() {
       await ffmpeg.writeFile("input.webm", inputData);
       await ffmpeg.exec(["-i", "input.webm", "-c:v", "libx264", "-preset", "fast", "-crf", "23", "-c:a", "aac", "-b:a", "128k", "-movflags", "+faststart", "output.mp4"]);
       const data = await ffmpeg.readFile("output.mp4");
-      const uint8 = data as Uint8Array;
-      const mp4Blob = new Blob([new Uint8Array(uint8.buffer, uint8.byteOffset, uint8.byteLength)], { type: "video/mp4" });
+      const mp4Blob = new Blob([data as any], { type: "video/mp4" });
       const url = URL.createObjectURL(mp4Blob);
       setMp4Url(url);
 

@@ -10,6 +10,7 @@ interface VideoPreviewProps {
   onConvertToMp4: () => void;
   isConverting: boolean;
   mp4Url: string | null;
+  isNativeMp4?: boolean;
 }
 
 export function VideoPreview({ previewUrl, recordedBlob, onConvertToMp4, isConverting, mp4Url }: VideoPreviewProps) {

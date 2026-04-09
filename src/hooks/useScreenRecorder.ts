@@ -90,10 +90,12 @@ export function useScreenRecorder(options: UseScreenRecorderOptions = {}): UseSc
     }
     if (screenVideoRef.current) {
       screenVideoRef.current.srcObject = null;
+      screenVideoRef.current.remove();
       screenVideoRef.current = null;
     }
     if (webcamVideoRef.current) {
       webcamVideoRef.current.srcObject = null;
+      webcamVideoRef.current.remove();
       webcamVideoRef.current = null;
     }
     canvasRef.current = null;

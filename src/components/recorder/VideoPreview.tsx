@@ -19,10 +19,12 @@ export function VideoPreview({ previewUrl, recordedBlob, onConvertToMp4, isConve
   const [copied, setCopied] = useState(false);
   const { toast } = useToast();
 
-  const downloadWebm = () => {
+  const format = isNativeMp4 ? "mp4" : "webm";
+
+  const downloadOriginal = () => {
     const a = document.createElement("a");
     a.href = previewUrl;
-    a.download = `recording-${Date.now()}.webm`;
+    a.download = `recording-${Date.now()}.${format}`;
     a.click();
   };
 
@@ -73,7 +75,7 @@ export function VideoPreview({ previewUrl, recordedBlob, onConvertToMp4, isConve
       {/* File info */}
       <div className="flex items-center gap-2 text-xs text-muted-foreground">
         <FileVideo className="h-3.5 w-3.5" />
-        <span>{fileSizeMB} MB • WebM</span>
+        <span>{fileSizeMB} MB • {format.toUpperCase()}</span>
       </div>
 
       {/* Download & Share buttons */}

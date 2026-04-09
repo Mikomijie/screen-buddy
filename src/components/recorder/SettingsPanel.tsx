@@ -1,11 +1,12 @@
-import { Mic, MicOff, Timer } from "lucide-react";
+import { Mic, MicOff, Timer, Video, VideoOff } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Slider } from "@/components/ui/slider";
 
 interface SettingsPanelProps {
   includeMic: boolean;
   onMicChange: (val: boolean) => void;
+  includeWebcam: boolean;
+  onWebcamChange: (val: boolean) => void;
   maxDuration: number;
   onMaxDurationChange: (val: number) => void;
   disabled?: boolean;
@@ -23,6 +24,8 @@ const DURATION_OPTIONS = [
 export function SettingsPanel({
   includeMic,
   onMicChange,
+  includeWebcam,
+  onWebcamChange,
   maxDuration,
   onMaxDurationChange,
   disabled = false,

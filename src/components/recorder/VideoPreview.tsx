@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { uploadAndShareRecording } from "@/lib/shareRecording";
 import { useToast } from "@/hooks/use-toast";
+import { shareOrDownload } from "@/lib/mobileUtils";
 
 interface VideoPreviewProps {
   previewUrl: string;
@@ -22,18 +23,14 @@ export function VideoPreview({ previewUrl, recordedBlob, onConvertToMp4, isConve
   const format = isNativeMp4 ? "mp4" : "webm";
 
   const downloadOriginal = () => {
-    const a = document.createElement("a");
-    a.href = previewUrl;
-    a.download = `recording-${Date.now()}.${format}`;
-    a.click();
+    shareOrDownload(recordedBlob, `recording-${Date.now()}.${format}`, "ScreenCap Recording");
   };
 
-  const downloadMp4 = () => {
+  const downloadMp4 = async () => {
     if (!mp4Url) return;
-    const a = document.createElement("a");
-    a.href = mp4Url;
-    a.download = `recording-${Date.now()}.mp4`;
-    a.click();
+    const res = await fetch(mp4Url);
+    const blob = await res.blob();
+    shareOrDownload(blob, `recording-${Date.now()}.mp4`, "ScreenCap Recording");
   };
 
   const handleShare = async () => {

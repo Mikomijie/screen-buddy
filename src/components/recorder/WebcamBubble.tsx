@@ -9,11 +9,11 @@ interface WebcamBubbleProps {
 export function WebcamBubble({ videoRef, stream, size = 140 }: WebcamBubbleProps) {
   const bubbleRef = useRef<HTMLDivElement>(null);
   const [position, setPosition] = useState({ x: 20, y: 20 });
-  const [isDragging, setIsDragging] = useState(false);
+  const isDragging = useRef(false);
   const dragOffset = useRef({ x: 0, y: 0 });
 
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
-    setIsDragging(true);
+    isDragging.current = true;
     const rect = bubbleRef.current?.getBoundingClientRect();
     if (rect) {
       dragOffset.current = { x: e.clientX - rect.left, y: e.clientY - rect.top };
@@ -23,17 +23,17 @@ export function WebcamBubble({ videoRef, stream, size = 140 }: WebcamBubbleProps
 
   const handlePointerMove = useCallback(
     (e: React.PointerEvent) => {
-      if (!isDragging || !bubbleRef.current?.parentElement) return;
+      if (!isDragging.current || !bubbleRef.current?.parentElement) return;
       const parent = bubbleRef.current.parentElement.getBoundingClientRect();
       const x = Math.max(0, Math.min(e.clientX - parent.left - dragOffset.current.x, parent.width - size));
       const y = Math.max(0, Math.min(e.clientY - parent.top - dragOffset.current.y, parent.height - size));
       setPosition({ x, y });
     },
-    [isDragging, size]
+    [size]
   );
 
   const handlePointerUp = useCallback(() => {
-    setIsDragging(false);
+    isDragging.current = false;
   }, []);
 
   useEffect(() => {

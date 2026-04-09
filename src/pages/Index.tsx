@@ -1,9 +1,10 @@
 import { ScreenRecorder } from "@/components/recorder/ScreenRecorder";
-import { Video, Zap, Download, Share2, Camera } from "lucide-react";
+import { Video, Zap, Download, Share2, Camera, UserCircle } from "lucide-react";
 
 const features = [
   { icon: Video, label: "Screen + Audio", desc: "Capture any tab, window, or full screen" },
   { icon: Camera, label: "Screenshots", desc: "Grab a still frame and download as PNG" },
+  { icon: UserCircle, label: "Webcam Overlay", desc: "Show your face with a draggable PiP bubble" },
   { icon: Zap, label: "MP4 Export", desc: "Convert to MP4 for X/Twitter in-browser" },
   { icon: Download, label: "Instant Download", desc: "No upload — your video stays local" },
   { icon: Share2, label: "Share Links", desc: "Upload and share with a unique URL" },
@@ -52,7 +53,7 @@ export default function Index() {
 
         {/* Features */}
         <section className="px-6 pb-20 max-w-5xl mx-auto">
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
             {features.map((f, i) => (
               <div
                 key={f.label}

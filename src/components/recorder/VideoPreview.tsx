@@ -80,30 +80,41 @@ export function VideoPreview({ previewUrl, recordedBlob, onConvertToMp4, isConve
 
       {/* Download & Share buttons */}
       <div className="flex flex-wrap gap-3">
-        <Button onClick={downloadWebm} variant="secondary" className="gap-2 font-heading">
-          <Download className="h-4 w-4" />
-          Download .webm
-        </Button>
-
-        {!mp4Url ? (
-          <Button onClick={onConvertToMp4} disabled={isConverting} className="gap-2 font-heading glow-ember">
-            {isConverting ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Converting to MP4…
-              </>
-            ) : (
-              <>
-                <FileVideo className="h-4 w-4" />
-                Export as .mp4
-              </>
-            )}
-          </Button>
-        ) : (
-          <Button onClick={downloadMp4} className="gap-2 font-heading glow-ember">
+        {isNativeMp4 ? (
+          /* Already MP4 — single download button */
+          <Button onClick={downloadOriginal} className="gap-2 font-heading glow-ember">
             <Download className="h-4 w-4" />
             Download .mp4
           </Button>
+        ) : (
+          <>
+            <Button onClick={downloadOriginal} variant="secondary" className="gap-2 font-heading">
+              <Download className="h-4 w-4" />
+              Download .webm
+            </Button>
+
+            {!mp4Url ? (
+              <Button onClick={onConvertToMp4} disabled={isConverting} className="gap-2 font-heading glow-ember">
+                {isConverting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Converting to MP4…
+                  </>
+                ) : (
+                  <>
+                    <FileVideo className="h-4 w-4" />
+                    Export as .mp4
+                  </>
+                )}
+              </Button>
+            ) : (
+              <Button onClick={downloadMp4} className="gap-2 font-heading glow-ember">
+                <Download className="h-4 w-4" />
+                Download .mp4
+              </Button>
+            )}
+          </>
+        )
         )}
 
         {/* Share button */}

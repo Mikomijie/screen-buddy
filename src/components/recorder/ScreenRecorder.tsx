@@ -199,8 +199,8 @@ export function ScreenRecorder() {
         />
       )}
 
-      {/* Settings — only when idle */}
-      {state === "idle" && !showScreenshot && (
+      {/* Settings — only when idle and capture supported */}
+      {state === "idle" && !showScreenshot && canCapture && (
         <div className="animate-fade-up-delay-3">
           <SettingsPanel
             includeMic={includeMic}

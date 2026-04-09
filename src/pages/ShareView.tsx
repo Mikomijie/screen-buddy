@@ -3,6 +3,7 @@ import { useParams, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Video, Download, ArrowLeft, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { shareOrDownload } from "@/lib/mobileUtils";
 
 export default function ShareView() {
   const { shareId } = useParams<{ shareId: string }>();

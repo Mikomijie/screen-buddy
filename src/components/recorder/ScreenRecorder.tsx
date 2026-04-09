@@ -11,6 +11,7 @@ import { ScreenshotPreview } from "./ScreenshotPreview";
 import { WebcamBubble } from "./WebcamBubble";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { supportsScreenCapture } from "@/lib/mobileUtils";
 
 export function ScreenRecorder() {
   const [includeMic, setIncludeMic] = useState(false);
@@ -95,6 +96,7 @@ export function ScreenRecorder() {
     }
   }, [recordedBlob, toast]);
 
+  const canCapture = supportsScreenCapture();
   const isRecording = state === "recording" || state === "paused";
   const showScreenshot = screenshotUrl && screenshotBlob && state === "idle";
   const displayError = error || screenshotError || webcam.error;

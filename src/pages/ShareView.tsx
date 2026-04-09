@@ -129,7 +129,7 @@ export default function ShareView() {
             <div className="space-y-6 animate-fade-up">
               <div className="text-center space-y-2">
                 <h1 className="font-heading text-2xl sm:text-3xl font-bold tracking-tight">
-                  {recording.title || "Shared Recording"}
+                  {recording.title || (isImage ? "Shared Screenshot" : "Shared Recording")}
                 </h1>
                 <p className="text-sm text-muted-foreground">
                   {new Date(recording.created_at).toLocaleDateString("en-US", {
@@ -142,19 +142,27 @@ export default function ShareView() {
               </div>
 
               <div className="relative overflow-hidden rounded-xl border border-border bg-black shadow-2xl">
-                <video
-                  src={videoUrl}
-                  controls
-                  autoPlay
-                  className="w-full max-h-[70vh] object-contain"
-                  playsInline
-                />
+                {isImage ? (
+                  <img
+                    src={videoUrl}
+                    alt="Shared screenshot"
+                    className="w-full max-h-[70vh] object-contain"
+                  />
+                ) : (
+                  <video
+                    src={videoUrl}
+                    controls
+                    autoPlay
+                    className="w-full max-h-[70vh] object-contain"
+                    playsInline
+                  />
+                )}
               </div>
 
               <div className="flex justify-center">
                 <Button onClick={handleDownload} className="gap-2 font-heading glow-ember">
                   <Download className="h-4 w-4" />
-                  Download recording
+                  {isImage ? "Download screenshot" : "Download recording"}
                 </Button>
               </div>
             </div>

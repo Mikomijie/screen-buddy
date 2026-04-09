@@ -101,8 +101,8 @@ export function ScreenRecorder() {
   const showScreenshot = screenshotUrl && screenshotBlob && state === "idle";
   const displayError = error || screenshotError || webcam.error;
 
-  // Show webcam bubble during recording
-  const showWebcamBubble = webcam.isEnabled && webcam.stream && isRecording;
+  // Show webcam bubble whenever enabled and stream is active
+  const showWebcamBubble = webcam.isEnabled && webcam.stream;
 
   return (
     <div className="w-full max-w-2xl mx-auto space-y-8">

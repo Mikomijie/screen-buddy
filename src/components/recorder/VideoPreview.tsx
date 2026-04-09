@@ -13,7 +13,7 @@ interface VideoPreviewProps {
   isNativeMp4?: boolean;
 }
 
-export function VideoPreview({ previewUrl, recordedBlob, onConvertToMp4, isConverting, mp4Url }: VideoPreviewProps) {
+export function VideoPreview({ previewUrl, recordedBlob, onConvertToMp4, isConverting, mp4Url, isNativeMp4 = false }: VideoPreviewProps) {
   const [isSharing, setIsSharing] = useState(false);
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);

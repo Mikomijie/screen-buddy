@@ -114,8 +114,8 @@ export function VideoPreview({ previewUrl, recordedBlob, onConvertToMp4, isConve
               </Button>
             )}
           </>
-        )
         )}
+      </div>
 
         {/* Share button */}
         {!shareUrl ? (

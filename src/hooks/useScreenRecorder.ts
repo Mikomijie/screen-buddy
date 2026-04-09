@@ -1,4 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from "react";
+import type { WebcamBubblePosition } from "@/components/recorder/WebcamBubble";
+import { createCompositeStream, type CompositeStreamController } from "@/lib/recorder/createCompositeStream";
 
 export type RecordingState = "idle" | "recording" | "paused" | "preview";
 
@@ -7,6 +9,7 @@ interface UseScreenRecorderOptions {
   warningBeforeEndSeconds?: number;
   includeMic?: boolean;
   webcamStream?: MediaStream | null;
+  webcamOverlayPosition?: WebcamBubblePosition;
 }
 
 interface UseScreenRecorderReturn {
@@ -30,6 +33,7 @@ export function useScreenRecorder(options: UseScreenRecorderOptions = {}): UseSc
     warningBeforeEndSeconds = 30,
     includeMic = false,
     webcamStream = null,
+    webcamOverlayPosition = { x: 1, y: 1 },
   } = options;
 
   const [state, setState] = useState<RecordingState>("idle");
@@ -46,10 +50,12 @@ export function useScreenRecorder(options: UseScreenRecorderOptions = {}): UseSc
   const pausedTimeRef = useRef<number>(0);
   const streamRef = useRef<MediaStream | null>(null);
   const micStreamRef = useRef<MediaStream | null>(null);
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const animFrameRef = useRef<number>(0);
-  const webcamVideoRef = useRef<HTMLVideoElement | null>(null);
-  const screenVideoRef = useRef<HTMLVideoElement | null>(null);
+  const compositeControllerRef = useRef<CompositeStreamController | null>(null);
+  const webcamOverlayPositionRef = useRef(webcamOverlayPosition);
+  useEffect(() => {
+    webcamOverlayPositionRef.current = webcamOverlayPosition;
+  }, [webcamOverlayPosition]);
+
 
   const remainingSeconds = maxDurationSeconds > 0 ? Math.max(0, maxDurationSeconds - elapsedSeconds) : null;
 
@@ -84,118 +90,8 @@ export function useScreenRecorder(options: UseScreenRecorderOptions = {}): UseSc
   }, [clearTimer]);
 
   const stopCompositing = useCallback(() => {
-    if (animFrameRef.current) {
-      cancelAnimationFrame(animFrameRef.current);
-      animFrameRef.current = 0;
-    }
-    if (screenVideoRef.current) {
-      screenVideoRef.current.srcObject = null;
-      screenVideoRef.current.remove();
-      screenVideoRef.current = null;
-    }
-    if (webcamVideoRef.current) {
-      webcamVideoRef.current.srcObject = null;
-      webcamVideoRef.current.remove();
-      webcamVideoRef.current = null;
-    }
-    canvasRef.current = null;
-  }, []);
-
-  const startCompositing = useCallback((displayStream: MediaStream, camStream: MediaStream): MediaStream => {
-    const canvas = document.createElement("canvas");
-    const ctx = canvas.getContext("2d")!;
-    
-    const screenVideo = document.createElement("video");
-    screenVideo.srcObject = displayStream;
-    screenVideo.muted = true;
-    screenVideo.playsInline = true;
-    screenVideo.setAttribute("autoplay", "");
-    // Append to DOM (hidden) so browser doesn't throttle frame decoding
-    screenVideo.style.cssText = "position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;opacity:0;pointer-events:none;";
-    document.body.appendChild(screenVideo);
-    screenVideo.play().catch(() => {});
-
-    const camVideo = document.createElement("video");
-    camVideo.srcObject = camStream;
-    camVideo.muted = true;
-    camVideo.playsInline = true;
-    camVideo.setAttribute("autoplay", "");
-    camVideo.style.cssText = "position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;opacity:0;pointer-events:none;";
-    document.body.appendChild(camVideo);
-    camVideo.play().catch(() => {});
-
-    screenVideoRef.current = screenVideo;
-    webcamVideoRef.current = camVideo;
-    canvasRef.current = canvas;
-
-    const bubbleSize = 160;
-    const margin = 24;
-
-    const draw = () => {
-      if (!canvasRef.current) return;
-      
-      // Match canvas to screen video dimensions
-      const vw = screenVideo.videoWidth || 1920;
-      const vh = screenVideo.videoHeight || 1080;
-      if (canvas.width !== vw || canvas.height !== vh) {
-        canvas.width = vw;
-        canvas.height = vh;
-      }
-
-      // Draw screen
-      ctx.drawImage(screenVideo, 0, 0, vw, vh);
-
-      // Draw webcam bubble (bottom-right, circular)
-      if (camVideo.readyState >= 2) {
-        const x = vw - bubbleSize - margin;
-        const y = vh - bubbleSize - margin;
-        const cx = x + bubbleSize / 2;
-        const cy = y + bubbleSize / 2;
-        const r = bubbleSize / 2;
-
-        ctx.save();
-        // Circular clip
-        ctx.beginPath();
-        ctx.arc(cx, cy, r, 0, Math.PI * 2);
-        ctx.closePath();
-        ctx.clip();
-
-        // Mirror horizontally for natural selfie view
-        ctx.translate(cx, cy);
-        ctx.scale(-1, 1);
-        ctx.translate(-cx, -cy);
-
-        // Draw webcam filling the circle
-        const cw = camVideo.videoWidth || 320;
-        const ch = camVideo.videoHeight || 320;
-        const scale = Math.max(bubbleSize / cw, bubbleSize / ch);
-        const dw = cw * scale;
-        const dh = ch * scale;
-        ctx.drawImage(camVideo, x - (dw - bubbleSize) / 2, y - (dh - bubbleSize) / 2, dw, dh);
-
-        ctx.restore();
-
-        // Draw border ring
-        ctx.beginPath();
-        ctx.arc(cx, cy, r, 0, Math.PI * 2);
-        ctx.strokeStyle = "#e85d3a";
-        ctx.lineWidth = 3;
-        ctx.stroke();
-      }
-
-      animFrameRef.current = requestAnimationFrame(draw);
-    };
-
-    // Wait for screen video to be ready before starting
-    screenVideo.onloadedmetadata = () => {
-      canvas.width = screenVideo.videoWidth;
-      canvas.height = screenVideo.videoHeight;
-      draw();
-    };
-    // Start drawing immediately in case metadata is already loaded
-    draw();
-
-    return canvas.captureStream(30);
+    compositeControllerRef.current?.stop();
+    compositeControllerRef.current = null;
   }, []);
 
   const startRecording = useCallback(async () => {
@@ -214,7 +110,13 @@ export function useScreenRecorder(options: UseScreenRecorderOptions = {}): UseSc
       // Build video stream: composite with webcam if available
       let videoStream: MediaStream;
       if (webcamStream) {
-        videoStream = startCompositing(displayStream, webcamStream);
+        const compositeController = await createCompositeStream({
+          displayStream,
+          overlayPositionRef: webcamOverlayPositionRef,
+          webcamStream,
+        });
+        compositeControllerRef.current = compositeController;
+        videoStream = compositeController.stream;
       } else {
         videoStream = new MediaStream(displayStream.getVideoTracks());
       }
@@ -305,7 +207,7 @@ export function useScreenRecorder(options: UseScreenRecorderOptions = {}): UseSc
         setError(err.message || "Failed to start recording.");
       }
     }
-  }, [includeMic, webcamStream, clearTimer, startTimer, startCompositing, stopCompositing]);
+  }, [includeMic, webcamStream, clearTimer, startTimer, stopCompositing]);
 
   const pauseRecording = useCallback(() => {
     if (mediaRecorderRef.current?.state === "recording") {

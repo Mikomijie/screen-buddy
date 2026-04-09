@@ -10,18 +10,21 @@ interface VideoPreviewProps {
   onConvertToMp4: () => void;
   isConverting: boolean;
   mp4Url: string | null;
+  isNativeMp4?: boolean;
 }
 
-export function VideoPreview({ previewUrl, recordedBlob, onConvertToMp4, isConverting, mp4Url }: VideoPreviewProps) {
+export function VideoPreview({ previewUrl, recordedBlob, onConvertToMp4, isConverting, mp4Url, isNativeMp4 = false }: VideoPreviewProps) {
   const [isSharing, setIsSharing] = useState(false);
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const { toast } = useToast();
 
-  const downloadWebm = () => {
+  const format = isNativeMp4 ? "mp4" : "webm";
+
+  const downloadOriginal = () => {
     const a = document.createElement("a");
     a.href = previewUrl;
-    a.download = `recording-${Date.now()}.webm`;
+    a.download = `recording-${Date.now()}.${format}`;
     a.click();
   };
 
@@ -72,35 +75,45 @@ export function VideoPreview({ previewUrl, recordedBlob, onConvertToMp4, isConve
       {/* File info */}
       <div className="flex items-center gap-2 text-xs text-muted-foreground">
         <FileVideo className="h-3.5 w-3.5" />
-        <span>{fileSizeMB} MB • WebM</span>
+        <span>{fileSizeMB} MB • {format.toUpperCase()}</span>
       </div>
 
       {/* Download & Share buttons */}
       <div className="flex flex-wrap gap-3">
-        <Button onClick={downloadWebm} variant="secondary" className="gap-2 font-heading">
-          <Download className="h-4 w-4" />
-          Download .webm
-        </Button>
-
-        {!mp4Url ? (
-          <Button onClick={onConvertToMp4} disabled={isConverting} className="gap-2 font-heading glow-ember">
-            {isConverting ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Converting to MP4…
-              </>
-            ) : (
-              <>
-                <FileVideo className="h-4 w-4" />
-                Export as .mp4
-              </>
-            )}
-          </Button>
-        ) : (
-          <Button onClick={downloadMp4} className="gap-2 font-heading glow-ember">
+        {isNativeMp4 ? (
+          /* Already MP4 — single download button */
+          <Button onClick={downloadOriginal} className="gap-2 font-heading glow-ember">
             <Download className="h-4 w-4" />
             Download .mp4
           </Button>
+        ) : (
+          <>
+            <Button onClick={downloadOriginal} variant="secondary" className="gap-2 font-heading">
+              <Download className="h-4 w-4" />
+              Download .webm
+            </Button>
+
+            {!mp4Url ? (
+              <Button onClick={onConvertToMp4} disabled={isConverting} className="gap-2 font-heading glow-ember">
+                {isConverting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Converting to MP4…
+                  </>
+                ) : (
+                  <>
+                    <FileVideo className="h-4 w-4" />
+                    Export as .mp4
+                  </>
+                )}
+              </Button>
+            ) : (
+              <Button onClick={downloadMp4} className="gap-2 font-heading glow-ember">
+                <Download className="h-4 w-4" />
+                Download .mp4
+              </Button>
+            )}
+          </>
         )}
 
         {/* Share button */}

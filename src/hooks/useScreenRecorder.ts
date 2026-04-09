@@ -124,9 +124,14 @@ export function useScreenRecorder(options: UseScreenRecorderOptions = {}): UseSc
         }
       }
 
-      const mimeType = MediaRecorder.isTypeSupported("video/webm;codecs=vp9,opus")
-        ? "video/webm;codecs=vp9,opus"
-        : "video/webm";
+      // Prefer MP4 natively (Chrome 130+), fall back to WebM
+      const mimeType = MediaRecorder.isTypeSupported("video/mp4;codecs=avc1,mp4a.40.2")
+        ? "video/mp4;codecs=avc1,mp4a.40.2"
+        : MediaRecorder.isTypeSupported("video/mp4")
+          ? "video/mp4"
+          : MediaRecorder.isTypeSupported("video/webm;codecs=vp9,opus")
+            ? "video/webm;codecs=vp9,opus"
+            : "video/webm";
 
       const recorder = new MediaRecorder(combinedStream, { mimeType });
       mediaRecorderRef.current = recorder;

@@ -182,6 +182,7 @@ export function ScreenRecorder() {
           onConvertToMp4={handleConvertToMp4}
           isConverting={isConverting}
           mp4Url={mp4Url}
+          isNativeMp4={recordedBlob.type.includes("mp4")}
         />
       )}
 

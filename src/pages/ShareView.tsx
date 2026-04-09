@@ -60,12 +60,14 @@ export default function ShareView() {
     loadRecording();
   }, [shareId]);
 
+  const isImage = recording?.mime_type.startsWith("image/");
+
   const handleDownload = () => {
     if (!videoUrl || !recording) return;
-    const ext = recording.mime_type.includes("mp4") ? "mp4" : "webm";
+    const ext = isImage ? "png" : recording.mime_type.includes("mp4") ? "mp4" : "webm";
     const a = document.createElement("a");
     a.href = videoUrl;
-    a.download = `recording-${shareId}.${ext}`;
+    a.download = `${isImage ? "screenshot" : "recording"}-${shareId}.${ext}`;
     a.target = "_blank";
     a.click();
   };

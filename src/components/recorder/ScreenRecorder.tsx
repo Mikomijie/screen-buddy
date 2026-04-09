@@ -2,11 +2,13 @@ import { useState, useCallback } from "react";
 import { Monitor, AlertTriangle, Camera } from "lucide-react";
 import { useScreenRecorder } from "@/hooks/useScreenRecorder";
 import { useScreenshot } from "@/hooks/useScreenshot";
+import { useWebcam } from "@/hooks/useWebcam";
 import { TimerDisplay } from "./TimerDisplay";
 import { RecorderControls } from "./RecorderControls";
 import { SettingsPanel } from "./SettingsPanel";
 import { VideoPreview } from "./VideoPreview";
 import { ScreenshotPreview } from "./ScreenshotPreview";
+import { WebcamBubble } from "./WebcamBubble";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 
@@ -16,6 +18,7 @@ export function ScreenRecorder() {
   const [isConverting, setIsConverting] = useState(false);
   const [mp4Url, setMp4Url] = useState<string | null>(null);
   const { toast } = useToast();
+  const webcam = useWebcam();
 
   const {
     state,

@@ -14,7 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      shared_recordings: {
+        Row: {
+          created_at: string
+          expires_at: string | null
+          file_path: string
+          file_size: number | null
+          id: string
+          mime_type: string
+          share_id: string
+          title: string | null
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string | null
+          file_path: string
+          file_size?: number | null
+          id?: string
+          mime_type?: string
+          share_id?: string
+          title?: string | null
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string | null
+          file_path?: string
+          file_size?: number | null
+          id?: string
+          mime_type?: string
+          share_id?: string
+          title?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

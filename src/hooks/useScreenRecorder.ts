@@ -6,6 +6,7 @@ interface UseScreenRecorderOptions {
   maxDurationSeconds?: number;
   warningBeforeEndSeconds?: number;
   includeMic?: boolean;
+  webcamStream?: MediaStream | null;
 }
 
 interface UseScreenRecorderReturn {
@@ -28,6 +29,7 @@ export function useScreenRecorder(options: UseScreenRecorderOptions = {}): UseSc
     maxDurationSeconds = 0,
     warningBeforeEndSeconds = 30,
     includeMic = false,
+    webcamStream = null,
   } = options;
 
   const [state, setState] = useState<RecordingState>("idle");
@@ -44,10 +46,13 @@ export function useScreenRecorder(options: UseScreenRecorderOptions = {}): UseSc
   const pausedTimeRef = useRef<number>(0);
   const streamRef = useRef<MediaStream | null>(null);
   const micStreamRef = useRef<MediaStream | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const animFrameRef = useRef<number>(0);
+  const webcamVideoRef = useRef<HTMLVideoElement | null>(null);
+  const screenVideoRef = useRef<HTMLVideoElement | null>(null);
 
   const remainingSeconds = maxDurationSeconds > 0 ? Math.max(0, maxDurationSeconds - elapsedSeconds) : null;
 
-  // Warning check
   useEffect(() => {
     if (maxDurationSeconds > 0 && remainingSeconds !== null && remainingSeconds <= warningBeforeEndSeconds && remainingSeconds > 0 && state === "recording") {
       setWarningActive(true);
@@ -56,7 +61,6 @@ export function useScreenRecorder(options: UseScreenRecorderOptions = {}): UseSc
     }
   }, [remainingSeconds, warningBeforeEndSeconds, maxDurationSeconds, state]);
 
-  // Auto-stop at max duration
   useEffect(() => {
     if (maxDurationSeconds > 0 && elapsedSeconds >= maxDurationSeconds && state === "recording") {
       stopRecording();
@@ -79,6 +83,112 @@ export function useScreenRecorder(options: UseScreenRecorderOptions = {}): UseSc
     }, 200);
   }, [clearTimer]);
 
+  const stopCompositing = useCallback(() => {
+    if (animFrameRef.current) {
+      cancelAnimationFrame(animFrameRef.current);
+      animFrameRef.current = 0;
+    }
+    if (screenVideoRef.current) {
+      screenVideoRef.current.srcObject = null;
+      screenVideoRef.current = null;
+    }
+    if (webcamVideoRef.current) {
+      webcamVideoRef.current.srcObject = null;
+      webcamVideoRef.current = null;
+    }
+    canvasRef.current = null;
+  }, []);
+
+  const startCompositing = useCallback((displayStream: MediaStream, camStream: MediaStream): MediaStream => {
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d")!;
+    
+    const screenVideo = document.createElement("video");
+    screenVideo.srcObject = displayStream;
+    screenVideo.muted = true;
+    screenVideo.playsInline = true;
+    screenVideo.play().catch(() => {});
+
+    const camVideo = document.createElement("video");
+    camVideo.srcObject = camStream;
+    camVideo.muted = true;
+    camVideo.playsInline = true;
+    camVideo.play().catch(() => {});
+
+    screenVideoRef.current = screenVideo;
+    webcamVideoRef.current = camVideo;
+    canvasRef.current = canvas;
+
+    const bubbleSize = 160;
+    const margin = 24;
+
+    const draw = () => {
+      if (!canvasRef.current) return;
+      
+      // Match canvas to screen video dimensions
+      const vw = screenVideo.videoWidth || 1920;
+      const vh = screenVideo.videoHeight || 1080;
+      if (canvas.width !== vw || canvas.height !== vh) {
+        canvas.width = vw;
+        canvas.height = vh;
+      }
+
+      // Draw screen
+      ctx.drawImage(screenVideo, 0, 0, vw, vh);
+
+      // Draw webcam bubble (bottom-right, circular)
+      if (camVideo.readyState >= 2) {
+        const x = vw - bubbleSize - margin;
+        const y = vh - bubbleSize - margin;
+        const cx = x + bubbleSize / 2;
+        const cy = y + bubbleSize / 2;
+        const r = bubbleSize / 2;
+
+        ctx.save();
+        // Circular clip
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+        ctx.closePath();
+        ctx.clip();
+
+        // Mirror horizontally for natural selfie view
+        ctx.translate(cx, cy);
+        ctx.scale(-1, 1);
+        ctx.translate(-cx, -cy);
+
+        // Draw webcam filling the circle
+        const cw = camVideo.videoWidth || 320;
+        const ch = camVideo.videoHeight || 320;
+        const scale = Math.max(bubbleSize / cw, bubbleSize / ch);
+        const dw = cw * scale;
+        const dh = ch * scale;
+        ctx.drawImage(camVideo, x - (dw - bubbleSize) / 2, y - (dh - bubbleSize) / 2, dw, dh);
+
+        ctx.restore();
+
+        // Draw border ring
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+        ctx.strokeStyle = "#e85d3a";
+        ctx.lineWidth = 3;
+        ctx.stroke();
+      }
+
+      animFrameRef.current = requestAnimationFrame(draw);
+    };
+
+    // Wait for screen video to be ready before starting
+    screenVideo.onloadedmetadata = () => {
+      canvas.width = screenVideo.videoWidth;
+      canvas.height = screenVideo.videoHeight;
+      draw();
+    };
+    // Start drawing immediately in case metadata is already loaded
+    draw();
+
+    return canvas.captureStream(30);
+  }, []);
+
   const startRecording = useCallback(async () => {
     setError(null);
     setWarningActive(false);
@@ -92,37 +202,54 @@ export function useScreenRecorder(options: UseScreenRecorderOptions = {}): UseSc
 
       streamRef.current = displayStream;
 
-      let combinedStream = displayStream;
+      // Build video stream: composite with webcam if available
+      let videoStream: MediaStream;
+      if (webcamStream) {
+        videoStream = startCompositing(displayStream, webcamStream);
+      } else {
+        videoStream = new MediaStream(displayStream.getVideoTracks());
+      }
 
-      if (includeMic) {
+      // Build audio: combine display audio + optional mic
+      let audioTracks: MediaStreamTrack[] = [];
+
+      const hasDisplayAudio = displayStream.getAudioTracks().length > 0;
+      
+      if (includeMic || hasDisplayAudio) {
         try {
-          const micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-          micStreamRef.current = micStream;
-
           const audioContext = new AudioContext();
           const dest = audioContext.createMediaStreamDestination();
 
-          // Add display audio tracks
-          displayStream.getAudioTracks().forEach((track) => {
-            const source = audioContext.createMediaStreamSource(new MediaStream([track]));
-            source.connect(dest);
-          });
+          if (hasDisplayAudio) {
+            displayStream.getAudioTracks().forEach((track) => {
+              const source = audioContext.createMediaStreamSource(new MediaStream([track]));
+              source.connect(dest);
+            });
+          }
 
-          // Add mic audio
-          micStream.getAudioTracks().forEach((track) => {
-            const source = audioContext.createMediaStreamSource(new MediaStream([track]));
-            source.connect(dest);
-          });
+          if (includeMic) {
+            try {
+              const micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+              micStreamRef.current = micStream;
+              micStream.getAudioTracks().forEach((track) => {
+                const source = audioContext.createMediaStreamSource(new MediaStream([track]));
+                source.connect(dest);
+              });
+            } catch {
+              console.warn("Mic access denied, recording without mic");
+            }
+          }
 
-          combinedStream = new MediaStream([
-            ...displayStream.getVideoTracks(),
-            ...dest.stream.getAudioTracks(),
-          ]);
+          audioTracks = dest.stream.getAudioTracks();
         } catch {
-          // Mic access denied — continue without mic
-          console.warn("Mic access denied, recording without mic");
+          console.warn("Audio mixing failed");
         }
       }
+
+      const combinedStream = new MediaStream([
+        ...videoStream.getVideoTracks(),
+        ...audioTracks,
+      ]);
 
       // Prefer MP4 natively (Chrome 130+), fall back to WebM
       const mimeType = MediaRecorder.isTypeSupported("video/mp4;codecs=avc1,mp4a.40.2")
@@ -147,9 +274,9 @@ export function useScreenRecorder(options: UseScreenRecorderOptions = {}): UseSc
         setPreviewUrl(url);
         setState("preview");
         clearTimer();
+        stopCompositing();
       };
 
-      // Handle user stopping share via browser UI
       displayStream.getVideoTracks()[0].onended = () => {
         if (mediaRecorderRef.current?.state !== "inactive") {
           stopRecording();
@@ -169,7 +296,7 @@ export function useScreenRecorder(options: UseScreenRecorderOptions = {}): UseSc
         setError(err.message || "Failed to start recording.");
       }
     }
-  }, [includeMic, clearTimer, startTimer]);
+  }, [includeMic, webcamStream, clearTimer, startTimer, startCompositing, stopCompositing]);
 
   const pauseRecording = useCallback(() => {
     if (mediaRecorderRef.current?.state === "recording") {
@@ -194,7 +321,8 @@ export function useScreenRecorder(options: UseScreenRecorderOptions = {}): UseSc
     streamRef.current?.getTracks().forEach((t) => t.stop());
     micStreamRef.current?.getTracks().forEach((t) => t.stop());
     clearTimer();
-  }, [clearTimer]);
+    stopCompositing();
+  }, [clearTimer, stopCompositing]);
 
   const discardRecording = useCallback(() => {
     if (previewUrl) URL.revokeObjectURL(previewUrl);
@@ -205,12 +333,12 @@ export function useScreenRecorder(options: UseScreenRecorderOptions = {}): UseSc
     setWarningActive(false);
   }, [previewUrl]);
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
       clearTimer();
       streamRef.current?.getTracks().forEach((t) => t.stop());
       micStreamRef.current?.getTracks().forEach((t) => t.stop());
+      stopCompositing();
       if (previewUrl) URL.revokeObjectURL(previewUrl);
     };
   }, []);

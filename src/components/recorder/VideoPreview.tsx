@@ -1,6 +1,8 @@
-import { Download, FileVideo, Loader2 } from "lucide-react";
+import { Download, FileVideo, Loader2, Share2, Check, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
+import { uploadAndShareRecording } from "@/lib/shareRecording";
+import { useToast } from "@/hooks/use-toast";
 
 interface VideoPreviewProps {
   previewUrl: string;
@@ -11,6 +13,11 @@ interface VideoPreviewProps {
 }
 
 export function VideoPreview({ previewUrl, recordedBlob, onConvertToMp4, isConverting, mp4Url }: VideoPreviewProps) {
+  const [isSharing, setIsSharing] = useState(false);
+  const [shareUrl, setShareUrl] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+  const { toast } = useToast();
+
   const downloadWebm = () => {
     const a = document.createElement("a");
     a.href = previewUrl;
@@ -24,6 +31,28 @@ export function VideoPreview({ previewUrl, recordedBlob, onConvertToMp4, isConve
     a.href = mp4Url;
     a.download = `recording-${Date.now()}.mp4`;
     a.click();
+  };
+
+  const handleShare = async () => {
+    setIsSharing(true);
+    try {
+      const result = await uploadAndShareRecording(recordedBlob);
+      setShareUrl(result.shareUrl);
+      toast({ title: "Share link ready!", description: "Copy the link and share it anywhere." });
+    } catch (err: any) {
+      console.error("Share error:", err);
+      toast({ title: "Share failed", description: err.message || "Could not upload recording.", variant: "destructive" });
+    } finally {
+      setIsSharing(false);
+    }
+  };
+
+  const handleCopyLink = async () => {
+    if (!shareUrl) return;
+    await navigator.clipboard.writeText(shareUrl);
+    setCopied(true);
+    toast({ title: "Link copied!" });
+    setTimeout(() => setCopied(false), 2000);
   };
 
   const fileSizeMB = (recordedBlob.size / (1024 * 1024)).toFixed(1);
@@ -46,7 +75,7 @@ export function VideoPreview({ previewUrl, recordedBlob, onConvertToMp4, isConve
         <span>{fileSizeMB} MB • WebM</span>
       </div>
 
-      {/* Download buttons */}
+      {/* Download & Share buttons */}
       <div className="flex flex-wrap gap-3">
         <Button onClick={downloadWebm} variant="secondary" className="gap-2 font-heading">
           <Download className="h-4 w-4" />
@@ -73,7 +102,40 @@ export function VideoPreview({ previewUrl, recordedBlob, onConvertToMp4, isConve
             Download .mp4
           </Button>
         )}
+
+        {/* Share button */}
+        {!shareUrl ? (
+          <Button onClick={handleShare} disabled={isSharing} variant="outline" className="gap-2 font-heading">
+            {isSharing ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Uploading…
+              </>
+            ) : (
+              <>
+                <Share2 className="h-4 w-4" />
+                Share link
+              </>
+            )}
+          </Button>
+        ) : (
+          <Button onClick={handleCopyLink} variant="outline" className="gap-2 font-heading">
+            {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+            {copied ? "Copied!" : "Copy share link"}
+          </Button>
+        )}
       </div>
+
+      {/* Share URL display */}
+      {shareUrl && (
+        <div
+          className="flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 cursor-pointer hover:bg-muted/50 transition-colors"
+          onClick={handleCopyLink}
+        >
+          <Share2 className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+          <span className="text-xs text-muted-foreground truncate font-mono">{shareUrl}</span>
+        </div>
+      )}
     </div>
   );
 }

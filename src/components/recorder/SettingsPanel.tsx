@@ -47,6 +47,8 @@ export function SettingsPanel({
           <Label htmlFor="mic-toggle" className="text-sm cursor-pointer">
             Microphone audio
           </Label>
+        </div>
+        <Switch id="mic-toggle" checked={includeMic} onCheckedChange={onMicChange} disabled={disabled} />
       </div>
 
       {/* Webcam toggle */}
@@ -62,8 +64,6 @@ export function SettingsPanel({
           </Label>
         </div>
         <Switch id="webcam-toggle" checked={includeWebcam} onCheckedChange={onWebcamChange} disabled={disabled} />
-      </div>
-        <Switch id="mic-toggle" checked={includeMic} onCheckedChange={onMicChange} disabled={disabled} />
       </div>
 
       {/* Duration */}

@@ -8,7 +8,7 @@ import { RecorderControls } from "./RecorderControls";
 import { SettingsPanel } from "./SettingsPanel";
 import { VideoPreview } from "./VideoPreview";
 import { ScreenshotPreview } from "./ScreenshotPreview";
-import { WebcamBubble } from "./WebcamBubble";
+import { WebcamBubble, type WebcamBubblePosition } from "./WebcamBubble";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { supportsScreenCapture } from "@/lib/mobileUtils";
@@ -18,6 +18,7 @@ export function ScreenRecorder() {
   const [maxDuration, setMaxDuration] = useState(180);
   const [isConverting, setIsConverting] = useState(false);
   const [mp4Url, setMp4Url] = useState<string | null>(null);
+  const [webcamPosition, setWebcamPosition] = useState<WebcamBubblePosition>({ x: 1, y: 1 });
   const { toast } = useToast();
   const webcam = useWebcam();
 
@@ -39,6 +40,7 @@ export function ScreenRecorder() {
     warningBeforeEndSeconds: 30,
     includeMic,
     webcamStream: webcam.stream,
+    webcamOverlayPosition: webcamPosition,
   });
 
   const {
@@ -106,7 +108,7 @@ export function ScreenRecorder() {
   const showWebcamBubble = webcam.isEnabled && webcam.stream;
 
   return (
-    <div className="w-full max-w-2xl mx-auto space-y-8">
+    <div className="relative w-full max-w-2xl mx-auto space-y-8">
       {/* Header area */}
       <div className="text-center space-y-2 animate-fade-up">
         <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-1.5 text-xs font-heading font-medium text-muted-foreground">
@@ -117,8 +119,13 @@ export function ScreenRecorder() {
 
       {/* Webcam PiP bubble */}
       {showWebcamBubble && (
-        <div className="relative w-full h-0">
-          <WebcamBubble videoRef={webcam.videoRef} stream={webcam.stream} />
+        <div className="pointer-events-none absolute inset-0 z-20">
+          <WebcamBubble
+            videoRef={webcam.videoRef}
+            stream={webcam.stream}
+            position={webcamPosition}
+            onPositionChange={setWebcamPosition}
+          />
         </div>
       )}
 

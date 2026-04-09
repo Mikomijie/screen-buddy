@@ -116,7 +116,6 @@ export function useScreenRecorder(options: UseScreenRecorderOptions = {}): UseSc
     screenVideo.play().catch(() => {});
 
     const camVideo = document.createElement("video");
-    camVideo.srcObject = displayStream.clone(); // keep ref alive
     camVideo.srcObject = camStream;
     camVideo.muted = true;
     camVideo.playsInline = true;

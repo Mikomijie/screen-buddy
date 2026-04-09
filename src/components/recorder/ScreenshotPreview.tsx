@@ -1,8 +1,9 @@
-import { Download, Image, Share2, Loader2, Check, Copy, Trash2 } from "lucide-react";
+import { Download, Image, Share2, Loader2, Check, Copy, Trash2, Crop } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { uploadAndShareRecording } from "@/lib/shareRecording";
 import { useToast } from "@/hooks/use-toast";
+import { CropOverlay } from "./CropOverlay";
 
 interface ScreenshotPreviewProps {
   screenshotUrl: string;
@@ -14,11 +15,14 @@ export function ScreenshotPreview({ screenshotUrl, screenshotBlob, onDiscard }: 
   const [isSharing, setIsSharing] = useState(false);
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [isCropping, setIsCropping] = useState(false);
+  const [currentUrl, setCurrentUrl] = useState(screenshotUrl);
+  const [currentBlob, setCurrentBlob] = useState(screenshotBlob);
   const { toast } = useToast();
 
   const downloadPng = () => {
     const a = document.createElement("a");
-    a.href = screenshotUrl;
+    a.href = currentUrl;
     a.download = `screenshot-${Date.now()}.png`;
     a.click();
   };
@@ -26,7 +30,7 @@ export function ScreenshotPreview({ screenshotUrl, screenshotBlob, onDiscard }: 
   const handleShare = async () => {
     setIsSharing(true);
     try {
-      const result = await uploadAndShareRecording(screenshotBlob, "image/png");
+      const result = await uploadAndShareRecording(currentBlob, "image/png");
       setShareUrl(result.shareUrl);
       toast({ title: "Share link ready!", description: "Copy the link and share it anywhere." });
     } catch (err: any) {
@@ -45,14 +49,36 @@ export function ScreenshotPreview({ screenshotUrl, screenshotBlob, onDiscard }: 
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const fileSizeKB = (screenshotBlob.size / 1024).toFixed(0);
+  const handleCropComplete = useCallback((croppedBlob: Blob, croppedUrl: string) => {
+    // Revoke old URL if it's different from the original
+    if (currentUrl !== screenshotUrl) URL.revokeObjectURL(currentUrl);
+    setCurrentBlob(croppedBlob);
+    setCurrentUrl(croppedUrl);
+    setShareUrl(null); // Reset share since image changed
+    setIsCropping(false);
+    toast({ title: "Cropped!", description: "Screenshot has been cropped. Download or share the result." });
+  }, [currentUrl, screenshotUrl, toast]);
+
+  const fileSizeKB = (currentBlob.size / 1024).toFixed(0);
+
+  if (isCropping) {
+    return (
+      <div className="animate-fade-up">
+        <CropOverlay
+          imageUrl={currentUrl}
+          onCropComplete={handleCropComplete}
+          onCancel={() => setIsCropping(false)}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4 animate-fade-up">
       {/* Image preview */}
       <div className="relative overflow-hidden rounded-xl border border-border bg-black">
         <img
-          src={screenshotUrl}
+          src={currentUrl}
           alt="Screenshot"
           className="w-full max-h-[400px] object-contain"
         />
@@ -69,6 +95,11 @@ export function ScreenshotPreview({ screenshotUrl, screenshotBlob, onDiscard }: 
         <Button onClick={downloadPng} className="gap-2 font-heading glow-ember">
           <Download className="h-4 w-4" />
           Download .png
+        </Button>
+
+        <Button onClick={() => setIsCropping(true)} variant="outline" className="gap-2 font-heading">
+          <Crop className="h-4 w-4" />
+          Crop
         </Button>
 
         {!shareUrl ? (

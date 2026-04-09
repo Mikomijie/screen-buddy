@@ -38,6 +38,7 @@ export function ScreenRecorder() {
     maxDurationSeconds: maxDuration,
     warningBeforeEndSeconds: 30,
     includeMic,
+    webcamStream: webcam.stream,
   });
 
   const {

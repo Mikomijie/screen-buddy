@@ -107,12 +107,20 @@ export function useScreenRecorder(options: UseScreenRecorderOptions = {}): UseSc
     screenVideo.srcObject = displayStream;
     screenVideo.muted = true;
     screenVideo.playsInline = true;
+    screenVideo.setAttribute("autoplay", "");
+    // Append to DOM (hidden) so browser doesn't throttle frame decoding
+    screenVideo.style.cssText = "position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;opacity:0;pointer-events:none;";
+    document.body.appendChild(screenVideo);
     screenVideo.play().catch(() => {});
 
     const camVideo = document.createElement("video");
+    camVideo.srcObject = displayStream.clone(); // keep ref alive
     camVideo.srcObject = camStream;
     camVideo.muted = true;
     camVideo.playsInline = true;
+    camVideo.setAttribute("autoplay", "");
+    camVideo.style.cssText = "position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;opacity:0;pointer-events:none;";
+    document.body.appendChild(camVideo);
     camVideo.play().catch(() => {});
 
     screenVideoRef.current = screenVideo;

@@ -3,6 +3,7 @@ import { useParams, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Video, Download, ArrowLeft, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { shareOrDownload } from "@/lib/mobileUtils";
 
 export default function ShareView() {
   const { shareId } = useParams<{ shareId: string }>();
@@ -62,14 +63,18 @@ export default function ShareView() {
 
   const isImage = recording?.mime_type.startsWith("image/");
 
-  const handleDownload = () => {
+  const handleDownload = async () => {
     if (!videoUrl || !recording) return;
-    const ext = isImage ? "png" : recording.mime_type.includes("mp4") ? "mp4" : "webm";
-    const a = document.createElement("a");
-    a.href = videoUrl;
-    a.download = `${isImage ? "screenshot" : "recording"}-${shareId}.${ext}`;
-    a.target = "_blank";
-    a.click();
+    try {
+      const res = await fetch(videoUrl);
+      const blob = await res.blob();
+      const ext = isImage ? "png" : recording.mime_type.includes("mp4") ? "mp4" : "webm";
+      const filename = `${isImage ? "screenshot" : "recording"}-${shareId}.${ext}`;
+      await shareOrDownload(blob, filename, recording.title || "ScreenCap");
+    } catch {
+      // Fallback: open in new tab
+      window.open(videoUrl, "_blank");
+    }
   };
 
   const fileSizeMB = recording?.file_size

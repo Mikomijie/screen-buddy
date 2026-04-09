@@ -1,4 +1,5 @@
 import { ScreenRecorder } from "@/components/recorder/ScreenRecorder";
+import { MobileBanner } from "@/components/recorder/MobileBanner";
 import { Video, Zap, Download, Share2, Camera, UserCircle } from "lucide-react";
 
 const features = [
@@ -46,8 +47,13 @@ export default function Index() {
           </p>
         </section>
 
+        {/* Mobile banner */}
+        <section className="px-6 max-w-2xl mx-auto">
+          <MobileBanner />
+        </section>
+
         {/* Recorder */}
-        <section className="px-6 pb-16 max-w-5xl mx-auto">
+        <section className="px-4 sm:px-6 pb-16 max-w-5xl mx-auto">
           <ScreenRecorder />
         </section>
 

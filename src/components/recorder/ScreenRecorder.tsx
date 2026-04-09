@@ -11,6 +11,7 @@ import { ScreenshotPreview } from "./ScreenshotPreview";
 import { WebcamBubble } from "./WebcamBubble";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { supportsScreenCapture } from "@/lib/mobileUtils";
 
 export function ScreenRecorder() {
   const [includeMic, setIncludeMic] = useState(false);
@@ -95,6 +96,7 @@ export function ScreenRecorder() {
     }
   }, [recordedBlob, toast]);
 
+  const canCapture = supportsScreenCapture();
   const isRecording = state === "recording" || state === "paused";
   const showScreenshot = screenshotUrl && screenshotBlob && state === "idle";
   const displayError = error || screenshotError || webcam.error;
@@ -148,31 +150,33 @@ export function ScreenRecorder() {
         </div>
       )}
 
-      {/* Controls */}
-      <div className="flex justify-center items-center gap-3 animate-fade-up-delay-2">
-        <RecorderControls
-          state={state}
-          onStart={startRecording}
-          onPause={pauseRecording}
-          onResume={resumeRecording}
-          onStop={stopRecording}
-          onDiscard={handleDiscard}
-        />
+      {/* Controls — only show if screen capture is supported */}
+      {canCapture && (
+        <div className="flex flex-col sm:flex-row justify-center items-center gap-3 animate-fade-up-delay-2">
+          <RecorderControls
+            state={state}
+            onStart={startRecording}
+            onPause={pauseRecording}
+            onResume={resumeRecording}
+            onStop={stopRecording}
+            onDiscard={handleDiscard}
+          />
 
-        {/* Screenshot button — only show when idle and no screenshot preview */}
-        {state === "idle" && !showScreenshot && (
-          <Button
-            size="lg"
-            variant="secondary"
-            onClick={takeScreenshot}
-            disabled={isTaking}
-            className="gap-3 px-6 py-6 text-base font-heading font-semibold transition-all hover:scale-[1.02] active:scale-[0.98]"
-          >
-            <Camera className="h-5 w-5" />
-            {isTaking ? "Capturing…" : "Screenshot"}
-          </Button>
-        )}
-      </div>
+          {/* Screenshot button — only show when idle and no screenshot preview */}
+          {state === "idle" && !showScreenshot && (
+            <Button
+              size="lg"
+              variant="secondary"
+              onClick={takeScreenshot}
+              disabled={isTaking}
+              className="gap-3 px-6 py-6 text-base font-heading font-semibold transition-all hover:scale-[1.02] active:scale-[0.98]"
+            >
+              <Camera className="h-5 w-5" />
+              {isTaking ? "Capturing…" : "Screenshot"}
+            </Button>
+          )}
+        </div>
+      )}
 
       {/* Video Preview */}
       {state === "preview" && previewUrl && recordedBlob && (
@@ -195,8 +199,8 @@ export function ScreenRecorder() {
         />
       )}
 
-      {/* Settings — only when idle */}
-      {state === "idle" && !showScreenshot && (
+      {/* Settings — only when idle and capture supported */}
+      {state === "idle" && !showScreenshot && canCapture && (
         <div className="animate-fade-up-delay-3">
           <SettingsPanel
             includeMic={includeMic}

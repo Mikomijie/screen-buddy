@@ -4,6 +4,7 @@ import { useState, useCallback } from "react";
 import { uploadAndShareRecording } from "@/lib/shareRecording";
 import { useToast } from "@/hooks/use-toast";
 import { CropOverlay } from "./CropOverlay";
+import { shareOrDownload } from "@/lib/mobileUtils";
 
 interface ScreenshotPreviewProps {
   screenshotUrl: string;
@@ -21,10 +22,7 @@ export function ScreenshotPreview({ screenshotUrl, screenshotBlob, onDiscard }: 
   const { toast } = useToast();
 
   const downloadPng = () => {
-    const a = document.createElement("a");
-    a.href = currentUrl;
-    a.download = `screenshot-${Date.now()}.png`;
-    a.click();
+    shareOrDownload(currentBlob, `screenshot-${Date.now()}.png`, "ScreenCap Screenshot");
   };
 
   const handleShare = async () => {

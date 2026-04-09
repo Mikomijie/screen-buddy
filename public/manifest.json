@@ -1,0 +1,17 @@
+{
+  "name": "ScreenCap",
+  "short_name": "ScreenCap",
+  "description": "Browser-native screen recorder & screenshot tool. Record, export, and share instantly.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1a1a1a",
+  "theme_color": "#e85d3a",
+  "icons": [
+    {
+      "src": "/favicon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
